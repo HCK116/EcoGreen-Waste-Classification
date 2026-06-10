@@ -4,6 +4,7 @@
  */
 
 // ── State ──
+// ── State ──
 const S = {
   page: "scanner",
   cameraStream: null,
@@ -13,6 +14,13 @@ const S = {
   totalClassified: 0,
   history: [],
 };
+// ── Achievements ──
+const ACHIEVEMENTS = [
+  { id:"first_step", title:"First Step", desc:"Classify your first item", icon:"🌱", goal:1 },
+  { id:"eco_warrior", title:"Eco Warrior", desc:"Classify 10 items", icon:"♻️", goal:10 },
+  { id:"green_hero", title:"Green Hero", desc:"Classify 25 items", icon:"🌳", goal:25 },
+  { id:"eco_master", title:"Eco Master", desc:"Classify 50 items", icon:"🏆", goal:50 },
+];
 
 // ── DOM ──
 const $ = id => document.getElementById(id);
@@ -232,14 +240,6 @@ function saveBadge() {
   renderBadges();
   toast("✅ Saved to Eco Badges!");
 }
-
-// ══ ECO BADGES ══
-const ACHIEVEMENTS = [
-  { id:"first_step", title:"First Step", desc:"Classify your first item", icon:"🌱", goal:1 },
-  { id:"eco_warrior", title:"Eco Warrior", desc:"Classify 10 items", icon:"♻️", goal:10 },
-  { id:"green_hero", title:"Green Hero", desc:"Classify 25 items", icon:"🌳", goal:25 },
-  { id:"eco_master", title:"Eco Master", desc:"Classify 50 items", icon:"🏆", goal:50 },
-];
 
 function renderBadges() {
   if (!$("sbNum")) return;
