@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EcoGreen — Waste Classification</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+<header class="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9z" fill="#fff" opacity=".3"/><path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M12 8V6M12 18v2M16 12h2M6 12H4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <div class="nav-brand-text">
+      <span class="nav-title">EcoGreen</span>
+      <span class="nav-sub">Waste Classification</span>
+    </div>
+  </div>
+  <nav class="nav-links">
+    <a class="nav-link active" data-page="scanner" onclick="showPage('scanner')">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Smart Scanner
+    </a>
+    <a class="nav-link" data-page="encyclopedia" onclick="showPage('encyclopedia')">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12v12H4z" stroke="currentColor" stroke-width="1.5" rx="1"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Encyclopedia
+    </a>
+    <a class="nav-link" data-page="wastemap" onclick="showPage('wastemap')">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.2 2 5 4.2 5 7c0 4 5 11 5 11s5-7 5-11c0-2.8-2.2-5-5-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
+      Waste Map
+    </a>
+    <a class="nav-link" data-page="badges" onclick="showPage('badges')">
+      <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M7 14l-2 4h10l-2-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      Eco Badges
+    </a>
+  </nav>
+</header>
+
+<!-- ═══════════════════════════ PAGES ═══════════════════════════ -->
+<div class="page-bg">
+
+  <!-- ══ PAGE: SMART SCANNER ══ -->
+  <div class="page active" id="page-scanner">
+    <div class="two-col">
+
+      <!-- LEFT -->
+      <div class="col-left">
+
+        <!-- Model status bar -->
+        <div class="model-status" id="modelStatus">
+          <div class="ms-spinner" id="msSpinner"></div>
+          <span id="msText">Loading AI model…</span>
+        </div>
+
+        <!-- Scanner card -->
+        <div class="card" id="scannerCard">
+          <div class="card-header">
+            <div class="card-icon green"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div>
+              <h2>Smart Scanner</h2>
+              <p>Upload a photo to classify waste</p>
+            </div>
+          </div>
+
+          <!-- Tab switch: Upload / Camera -->
+          <div class="scan-tabs">
+            <button class="scan-tab active" id="tabUp" onclick="switchScanTab('upload')">⬆ Upload</button>
+            <button class="scan-tab" id="tabCam" onclick="switchScanTab('camera')">📷 Camera</button>
+          </div>
+
+          <!-- Upload zone -->
+          <div id="panelUpload">
+            <label class="dropzone" id="dropzone" for="fileInput">
+              <svg viewBox="0 0 40 40" fill="none" class="dz-icon"><path d="M20 28V12M20 12l-6 6M20 12l6 6" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="6" y="28" width="28" height="2" rx="1" fill="#e5e7eb"/></svg>
+              <p class="dz-text">Click to upload image</p>
+              <p class="dz-hint">or drag and drop</p>
+              <input type="file" id="fileInput" accept="image/*" hidden/>
+            </label>
+          </div>
+
+          <!-- Camera zone -->
+          <div id="panelCamera" class="hidden">
+            <div class="camera-box">
+              <video id="videoEl" autoplay playsinline></video>
+              <canvas id="snapCanvas" hidden></canvas>
+              <div class="cam-frame"></div>
+              <div class="cam-btns">
+                <button class="cam-btn-sm" onclick="flipCamera()">🔄</button>
+                <button class="cam-btn-snap" onclick="takeSnap()">📸</button>
+                <button class="cam-btn-sm" onclick="closeCamera()">✕</button>
+              </div>
+            </div>
+            <p class="cam-err hidden" id="camErr">⚠ Camera permission denied. Please allow camera access.</p>
+          </div>
+
+          <!-- Preview -->
+          <div class="preview-box hidden" id="previewBox">
+            <div class="preview-img-wrap">
+              <img id="previewImg" src="" alt="preview"/>
+              <button class="preview-remove" onclick="clearScan()">✕</button>
+            </div>
+            <button class="btn-classify" id="btnClassify" onclick="classify()">
+              🔍 Classify Waste
+            </button>
+          </div>
+        </div>
+
+        <!-- What Happens Next card -->
+        <div class="card" id="nextCard">
+          <div class="card-header">
+            <div class="card-icon teal"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div>
+              <h2>What Happens Next?</h2>
+              <p>Scan an item to see recommendations</p>
+            </div>
+          </div>
+          <div class="next-placeholder" id="nextPlaceholder">
+            <p>Upload a photo using the Smart Scanner to get started!</p>
+          </div>
+
+          <!-- Result (hidden until classified) -->
+          <div class="result-box hidden" id="resultBox">
+            <div class="result-loading hidden" id="resultLoading">
+              <div class="spinner"></div><span>Analyzing image…</span>
+            </div>
+            <div id="resultContent">
+              <div class="result-header-row">
+                <div class="result-emoji" id="rEmoji"></div>
+                <div>
+                  <h3 id="rTitle"></h3>
+                  <span class="result-badge-pill" id="rBadgePill"></span>
+                </div>
+              </div>
+              <div class="result-conf-wrap">
+                <div class="result-conf-row">
+                  <span>🍃 Organic</span>
+                  <div class="conf-track"><div class="conf-bar org" id="barOrg"></div></div>
+                  <span id="pOrg">0%</span>
+                </div>
+                <div class="result-conf-row">
+                  <span>♻️ Recyclable</span>
+                  <div class="conf-track"><div class="conf-bar rec" id="barRec"></div></div>
+                  <span id="pRec">0%</span>
+                </div>
+              </div>
+              <div class="result-info-grid">
+                <div class="ri"><span class="ri-l">Disposal</span><span class="ri-v" id="rDisposal"></span></div>
+                <div class="ri"><span class="ri-l">Bin Color</span><span class="ri-v" id="rBin"></span></div>
+                <div class="ri"><span class="ri-l">Recyclable</span><span class="ri-v" id="rRecyclable"></span></div>
+                <div class="ri"><span class="ri-l">Hazard</span><span class="ri-v" id="rHazard"></span></div>
+              </div>
+              <div class="result-tip" id="rTip"></div>
+              <div id="rRecycleSteps" style="display:none"></div>
+              <div class="result-actions">
+                <button class="btn-outline" onclick="clearScan()">🔄 Scan Again</button>
+                <button class="btn-green" onclick="saveBadge()">💾 Save Result</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="col-right">
+        <div class="card">
+          <h3 class="right-title">Quick Guide</h3>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div><strong>Upload Photo</strong><p>Take or upload a clear photo of your waste item</p></div></div>
+            <div class="step"><div class="step-num">2</div><div><strong>Get Classification</strong><p>Our AI will identify the waste type instantly</p></div></div>
+            <div class="step"><div class="step-num">3</div><div><strong>Follow Recommendations</strong><p>Learn the proper disposal method</p></div></div>
+          </div>
+          <hr class="divider"/>
+          <h3 class="right-title">Waste Categories</h3>
+          <div class="waste-cats">
+            <div class="wcat"><span class="wcat-dot teal"></span><strong>Recyclable</strong><span class="wcat-sub"> - Plastic, Paper, Metal, Glass</span></div>
+            <div class="wcat"><span class="wcat-dot orange"></span><strong>Organic</strong><span class="wcat-sub"> - Food scraps, Garden waste</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ PAGE: ENCYCLOPEDIA ══ -->
+  <div class="page hidden" id="page-encyclopedia">
+    <div class="two-col">
+      <div class="col-left">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon teal"><svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M14 14l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div><h2>Trash Encyclopedia</h2><p>Search waste by name</p></div>
+          </div>
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5" stroke="#9ca3af" stroke-width="1.5"/><path d="M14 14l3 3" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <input class="search-input" id="encSearch" type="text" placeholder="Search for waste item…" oninput="searchEncyclopedia()"/>
+          </div>
+          <div class="enc-results" id="encResults"></div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="card">
+          <h3 class="right-title">Did You Know?</h3>
+          <div class="did-you-know">
+            <div class="dyk-card blue"><strong>Plastic Recycling</strong><p>Recycling one plastic bottle can save enough energy to power a 60-watt light bulb for 3 hours!</p></div>
+            <div class="dyk-card pink"><strong>Composting Benefits</strong><p>Organic waste makes up 30% of household trash. Composting reduces methane emissions by up to 70%!</p></div>
+            <div class="dyk-card green"><strong>Environmental Impact</strong><p>Proper waste sorting can reduce your carbon footprint by up to 40% annually!</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: WASTE MAP ══ -->
+  <div class="page hidden" id="page-wastemap">
+    <div class="two-col">
+      <div class="col-left">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.2 2 5 4.2 5 7c0 4 5 11 5 11s5-7 5-11c0-2.8-2.2-5-5-5z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke="currentColor" stroke-width="1.5"/></svg></div>
+            <div><h2>Interactive Waste Map</h2><p>Find nearest trash banks</p></div>
+          </div>
+          <!-- Fake map -->
+          <div class="map-box">
+            <div class="map-bg">
+              <div class="map-roads"></div>
+              <div class="map-label">Interactive Map<br/><small>Showing trash banks near you</small></div>
+              <div class="map-pin" style="top:35%;left:30%"><svg viewBox="0 0 24 30" width="32"><path d="M12 0C7.6 0 4 3.6 4 8c0 6 8 22 8 22s8-16 8-22c0-4.4-3.6-8-8-8z" fill="#16a34a"/><circle cx="12" cy="8" r="4" fill="#fff"/></svg></div>
+              <div class="map-pin" style="top:22%;left:52%"><svg viewBox="0 0 24 30" width="28"><path d="M12 0C7.6 0 4 3.6 4 8c0 6 8 22 8 22s8-16 8-22c0-4.4-3.6-8-8-8z" fill="#16a34a"/><circle cx="12" cy="8" r="4" fill="#fff"/></svg></div>
+              <div class="map-pin" style="top:55%;left:62%"><svg viewBox="0 0 24 30" width="28"><path d="M12 0C7.6 0 4 3.6 4 8c0 6 8 22 8 22s8-16 8-22c0-4.4-3.6-8-8-8z" fill="#16a34a"/><circle cx="12" cy="8" r="4" fill="#fff"/></svg></div>
+              <div class="map-pin" style="top:68%;left:38%"><svg viewBox="0 0 24 30" width="26"><path d="M12 0C7.6 0 4 3.6 4 8c0 6 8 22 8 22s8-16 8-22c0-4.4-3.6-8-8-8z" fill="#16a34a"/><circle cx="12" cy="8" r="4" fill="#fff"/></svg></div>
+            </div>
+          </div>
+          <!-- Bank list -->
+          <div class="bank-list" id="bankList">
+            <div class="bank-item active-bank" onclick="selectBank(this,'Bank Sampah Mandiri','0.8 km away','Jl. Merdeka No. 45, Jakarta Selatan','Mon-Sat 8AM-4PM')">
+              <div class="bank-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.2 2 5 4 5 6.5 5 10 10 18 10 18s5-8 5-11.5C15 4 12.8 2 10 2z" stroke="#16a34a" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke="#16a34a" stroke-width="1.5"/></svg></div>
+              <div class="bank-info"><strong>Bank Sampah Mandiri</strong><p>✈ 0.8 km away</p><small>Jl. Merdeka No. 45, Jakarta Selatan</small></div>
+            </div>
+            <div class="bank-item" onclick="selectBank(this,'Bank Sampah Hijau Sejahtera','1.2 km away','Jl. Kemang Raya No. 12, Jakarta Selatan','Tue-Sun 7AM-3PM')">
+              <div class="bank-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.2 2 5 4 5 6.5 5 10 10 18 10 18s5-8 5-11.5C15 4 12.8 2 10 2z" stroke="#16a34a" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke="#16a34a" stroke-width="1.5"/></svg></div>
+              <div class="bank-info"><strong>Bank Sampah Hijau Sejahtera</strong><p>✈ 1.2 km away</p><small>Jl. Kemang Raya No. 12, Jakarta Selatan</small></div>
+            </div>
+            <div class="bank-item" onclick="selectBank(this,'Bank Sampah Bersih Indah','2.1 km away','Jl. Fatmawati No. 78, Jakarta Selatan','Mon-Fri 8AM-5PM')">
+              <div class="bank-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2C7.2 2 5 4 5 6.5 5 10 10 18 10 18s5-8 5-11.5C15 4 12.8 2 10 2z" stroke="#16a34a" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke="#16a34a" stroke-width="1.5"/></svg></div>
+              <div class="bank-info"><strong>Bank Sampah Bersih Indah</strong><p>✈ 2.1 km away</p><small>Jl. Fatmawati No. 78, Jakarta Selatan</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="card">
+          <h3 class="right-title">Trash Bank Benefits</h3>
+          <p class="right-desc">Trash banks (Bank Sampah) are community-based waste management facilities where you can exchange recyclable waste for money or goods.</p>
+          <ul class="benefit-list">
+            <li><span class="dot green"></span>Earn money from your recyclables</li>
+            <li><span class="dot green"></span>Reduce environmental pollution</li>
+            <li><span class="dot green"></span>Support local communities</li>
+            <li><span class="dot green"></span>Create jobs in waste management</li>
+          </ul>
+          <!-- Selected bank detail -->
+          <div class="bank-detail hidden" id="bankDetail">
+            <hr class="divider"/>
+            <h4 id="bdName"></h4>
+            <p id="bdAddr" class="bd-addr"></p>
+            <p id="bdHours" class="bd-hours"></p>
+            <button class="btn-green full" onclick="document.getElementById('bankDetail').classList.add('hidden')">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE: ECO BADGES ══ -->
+  <div class="page hidden" id="page-badges">
+    <div class="two-col">
+      <div class="col-left">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M7 14l-2 4h10l-2-4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+            <div><h2>Eco Badges</h2><p>Track your environmental impact</p></div>
+          </div>
+          <!-- Stats banner -->
+          <div class="stats-banner">
+            <div class="sb-top">
+              <svg viewBox="0 0 20 20" fill="none" width="20"><path d="M10 2l2 5h5l-4 3 1.5 5L10 12l-4.5 3L7 10 3 7h5z" fill="#fbbf24"/></svg>
+              <strong>Total Items Classified</strong>
+            </div>
+            <div class="sb-num" id="sbNum">0</div>
+            <hr class="sb-divider"/>
+            <div class="sb-stats">
+              <div class="sb-stat"><span class="sb-icon">🌿</span><span class="sb-label">CO₂ Saved</span><strong id="sbCo2">0 kg</strong></div>
+              <div class="sb-stat"><span class="sb-icon">🌳</span><span class="sb-label">Trees</span><strong id="sbTrees">0</strong></div>
+              <div class="sb-stat"><span class="sb-icon">♻️</span><span class="sb-label">Recycled</span><strong id="sbRecycled">0 kg</strong></div>
+            </div>
+          </div>
+          <h3 class="section-label">Your Achievements</h3>
+          <div class="achievements" id="achievements">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="card">
+          <h3 class="right-title">Level Up Your Impact</h3>
+          <p class="right-desc">Keep classifying waste to unlock more badges and track your environmental contribution!</p>
+          <div class="milestone-box" id="milestoneBox">
+            <strong>Next Milestone</strong>
+            <p id="milestoneText">Classify your first item to get started!</p>
+          </div>
+          <div class="share-box">
+            <strong>Share Your Progress</strong>
+            <p>Inspire others by sharing your environmental achievements!</p>
+            <button class="btn-green full" onclick="shareProgress()">Share on Social Media</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-bg -->
+
+<!-- FOOTER -->
+<footer class="footer">
+  <span>© 2026 EcoGreen. Making waste management smarter and greener.</span>
+  <span class="footer-right">🌿 Together for a cleaner planet</span>
+</footer>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+
+<script src="model.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
